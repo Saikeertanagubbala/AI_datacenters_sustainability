@@ -19,11 +19,6 @@ def load_data():
                                        'internet_penetration_percent','growth_rate_of_data_centers_percent_per_year',
                                        'cooling_technologies_common'],
                                na_values=['N/A', 'NA', 'unknown', '', None, 'Unknown', '?', 'No data'])
-    
-    # Load ESG data if you have it
-    # esg_data = pd.read_csv('your_esg_file.csv')
-    # return data_centers, esg_data
-    
     return data_centers
 
 data_centers = load_data()
@@ -47,10 +42,14 @@ st.markdown(
 st.title(":earth_americas: Data Centers and Non-Sustainability Measures :fire:")
 st.write("Learn more about metrics on data centers and their usage of energy and water, pushing for sustainability moving forward.")
 
-tab1, tab2, tab3 = st.tabs(["IDA", "EDA", "Documentation"])
+tab1, tab2, tab3 = st.tabs(["Documentation", "IDA", "EDA"])
 
-with tab1:
+with tab2:
     with st.expander("### Data Centers: Missing Values Analysis", expanded=True):
+        st.write("- My missing values centered around my 'Data Centers' dataset, compared to my ESG dataset which is synthetic and complete.")
+        st.write("- The data ceneters dataset had missing values for both numerical and categrical variables.")
+        st.write("- The ESG dataset had missing values for a variable that I ended up dropping due to irrelevance to my analysis.")
+
         col1, col2 = st.columns([2, 1]) 
         
         # Left column: Heatmap
@@ -350,7 +349,7 @@ with tab1:
                 else:
                     st.write("Not enough numeric columns in Technology subset:", list(esg_tech_numeric.columns))
 
-with tab2:
+with tab3:
     st.write("Plot 1")
     df = pd.read_csv('merged_datacenters_esg_timeseries.csv')
     plot1_data = df.groupby(['region', 'Year']).agg({
@@ -381,7 +380,6 @@ with tab2:
         legend=dict(title='Region', orientation='v')
     )
 
-    # Display the Plotly figure inside Streamlit
     st.plotly_chart(fig1, use_container_width=True)
 
     st.write("Plot 2")
@@ -407,7 +405,7 @@ with tab2:
     fig2.update_layout(height=600)
     st.plotly_chart(fig2, use_container_width=True)
 
-with tab3:
+with tab1:
     st.markdown("## Datasets Overview")
     st.markdown("Two complementary datasets procured from Kaggle to explore the intersection of data center infrastructure and environmental performance.")
     
@@ -417,10 +415,10 @@ with tab3:
     Country-level insights into global data center infrastructure (as of 2025):
     
     **Key Features:**
-    - Data center counts (total, hyperscale, colocation)
+    - Data center counts (total, hyperscale, colocation).
     - Power capacity in megawatts (MW).
-    - Average renewable energy usage (%)
-    - Growth rates, cooling technologies, and tier distribution
+    - Average renewable energy usage (%).
+    - Average growth rates, cooling technologies, and tier distribution.
     """)
     st.page_link("https://www.kaggle.com/datasets/rockyt07/data-center-dataset/data", 
                  label="Data Center Dataset", icon="🏢")
@@ -428,14 +426,15 @@ with tab3:
     st.markdown("---")
     
     # Dataset 2
-    st.markdown("### 2. ESG & Financial Performance Dataset")
+    st.markdown("### 2. ESG Performance Dataset")
     st.markdown("""
-    Simulated financial and ESG metrics for 1,000 global companies (2015-2025):
+    Simulated financial and ESG metrics for 1,000 global companies (2015-2025), focused primarily on ESG measures:
+    Data was subsetted to only include the Tech industry for relevance to data centers.
     
     **Key Features:**
-    - 11,000 rows across 9 industries and 7 regions
-    - Financial metrics: revenue, profit margins, market capitalization
-    - ESG indicators: carbon emissions, resource usage, water usage
+    - 11,000 rows across 9 industries and 7 regions.
+    - Financial metrics: revenue, profit margins, market capitalization.
+    - ESG indicators: carbon emissions, resource usage, water usage.
     
     """)
     st.page_link("https://www.kaggle.com/datasets/shriyashjagtap/esg-and-financial-performance-dataset", 
