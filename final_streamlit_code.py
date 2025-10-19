@@ -177,6 +177,8 @@ with tab2:
 #-------------------------------------------------------------------Simple imputer plot -------------------------------------------------------------
         col1, col2 = st.columns([1, 1])
         with col1:
+            st.markdown("Once I visualized correlations, I wanted to impute missing values. The first method I wanted to try was SimpleImputer. I used median as I knew that there was skewness in my data.")
+            st.markdown("I was able to see that with SimpleImputer, it performed well on some variables and not so much on others like 'average_renewable_energy_usage_percent'.")
             median_imputer = SimpleImputer(strategy='median', missing_values=np.nan)
             X_missing = df[numerical_cols_with_missing]
             imputed_X = median_imputer.fit_transform(X_missing)
@@ -191,21 +193,10 @@ with tab2:
 
             for idx, col in enumerate(numerical_cols_with_missing):
                 ax = axes[idx]
-                
-                # Original data with missing values
                 original_data = df[col].dropna()
-                
-                # Complete imputed dataset (NaNs replaced with median of column)
                 imputed_complete_data = data_centers_imputed[col]
-                
-                # Plot original data
-                ax.hist(original_data, bins=30, alpha=0.5, label=f'Original (n={len(original_data)})', 
-                        color='blue')
-                
-                # Plot complete imputed data on top
-                ax.hist(imputed_complete_data, bins=30, alpha=0.5, label=f'After Imputation (n={len(imputed_complete_data)})', 
-                        color='red')
-                
+                ax.hist(original_data, bins=30, alpha=0.5, label=f'Original (n={len(original_data)})', color='blue')
+                ax.hist(imputed_complete_data, bins=30, alpha=0.5, label=f'After Imputation (n={len(imputed_complete_data)})', color='red')
                 ax.set_title(f'{col}', fontsize=10)
                 ax.set_xlabel('Values')
                 ax.set_ylabel('Frequency')
@@ -213,15 +204,16 @@ with tab2:
                 ax.grid(True, alpha=0.3)
 
             fig.delaxes(axes[5])
-
             plt.tight_layout()
             plt.suptitle('Original Distribution overlaid with SimpleImputer (Median)', fontsize=14, y=1.02)
             st.pyplot(fig)
             plt.close()
 #-------------------------------------------------------------------KNN imputer plot -------------------------------------------------------------
             with col2:
+                st.markdown("Next, I wanted to try KNN imputation to see if it would perform better than SimpleImputer.")
+                st.markdown("KNN imputation did perform better on variables like 'average_renewable_energy_usage_percent' and 'internet_penetration_percent'.")
+                st.markdown("Since the median imputer did well on some variables and KNN did well on others, I left it with a hybrid approach.")
                 data_centers_hybrid_imputed = df.copy()
-
                 median_columns = ['floor_space_sqft_total', 'power_capacity_MW_total']
                 median_imputer = SimpleImputer(strategy='median')
                 for col in median_columns:
@@ -229,7 +221,6 @@ with tab2:
                         data_centers_hybrid_imputed[col] = median_imputer.fit_transform(
                             data_centers_hybrid_imputed[[col]]
                         )
-
                 knn_columns = ['average_renewable_energy_usage_percent', 
                             'internet_penetration_percent',
                             'growth_rate_of_data_centers_percent_per_year']
@@ -260,13 +251,6 @@ with tab2:
                     
                     for col in knn_columns:
                         data_centers_hybrid_imputed[col] = knn_imputed[col]
-                else:
-                    print("Not enough complete rows for KNN, using median instead")
-                    for col in knn_columns:
-                        if data_centers_hybrid_imputed[col].isnull().any():
-                            data_centers_hybrid_imputed[col] = median_imputer.fit_transform(
-                                data_centers_hybrid_imputed[[col]]
-                            )
 
                 fig, axes = plt.subplots(3, 2, figsize=(10, 8))
                 axes = axes.flatten()
@@ -297,57 +281,60 @@ with tab2:
 
                 fig.delaxes(axes[5])
                 plt.tight_layout()
-                plt.suptitle('Hybrid Imputation Strategy: Median + KNN (K=5)', 
+                plt.suptitle('Hybrid Imputation Strategy: Median+KNN (K=5)', 
                             fontsize=14, y=1.02)
                 st.pyplot(fig)
                 plt.close()
-    with st.expander("### ESG Performance Dataset Overview", expanded=True):
+    #-------------------------------------------------------------------ESG EDA -------------------------------------------------------------
+    with st.expander("### ESG Performance Dataset Cleaning", expanded=True):
+            st.write("My data for the ESG dataset was clean for the most part but when I printed out skew results I could clearly see how certain variables were highly skewed.")
+            st.write("To address this, I applied a log-transformation to specific variables to reduce skewness and achieve a more normal distribution.")
+            st.write("Below are pairplots before and after log-scaling to visualize the impact of this transformation on the data distribution. This is will give us better insights into relationships between variables.")   
             col1, col2 = st.columns([1, 1])
+            esg_all = pd.read_csv('company_esg_financial_dataset.csv')
+            esg_tech_base = esg_all[esg_all['Industry'] == 'Technology'].copy()
+
+            columns_to_drop = ['CompanyID', 'CompanyName', 'Revenue', 'ProfitMargin', 'MarketCap',
+                               'GrowthRate', 'ESG_Social', 'ESG_Governance']
+            esg_tech_base = esg_tech_base.drop(columns=[c for c in columns_to_drop if c in esg_tech_base.columns],
+                                                errors='ignore')
+
+            # left:original pairplot with  technology subset
             with col1:
-                esg_data = pd.read_csv('company_esg_financial_dataset.csv')
-                columns_to_drop = [
-                    'CompanyID', 
-                    'CompanyName', 
-                    'Revenue', 
-                    'ProfitMargin', 
-                    'MarketCap', 
-                    'GrowthRate',
-                    'ESG_Social', 
-                    'ESG_Governance'
-                ]
+                esg_tech = esg_tech_base.copy()
+                numeric_cols = esg_tech.select_dtypes(include=[np.number]).columns.tolist()
+                if 'Year' in numeric_cols:
+                    numeric_cols.remove('Year')
 
-                esg_data = esg_data.drop(columns=columns_to_drop)
-                esg_numeric = esg_data.select_dtypes(include=[np.number])
-
-                if esg_numeric.shape[1] >= 2:
-                    g = sns.pairplot(esg_numeric, diag_kind='kde')
-                    g.fig.suptitle("Pair plot (before log-scaling)", fontsize=16, y=1.02)
+                if len(numeric_cols) >= 2:
+                    g = sns.pairplot(esg_tech[numeric_cols], diag_kind='kde', corner=True)
+                    g.fig.suptitle("Pairplot prior to log-scaling", fontsize=18, fontweight='bold', y=1.02)
                     st.pyplot(g.fig)
                     plt.close(g.fig)
-                else:
-                    st.write("Not enough numeric columns to display a pairplot. Numeric columns found:", list(esg_numeric.columns))
+
+            # right: log-scaled pairplot with technology subset
             with col2:
-                esg_tech = esg_data[esg_data['Industry'] == 'Technology'].copy()
+                esg_tech_log = esg_tech_base.copy()
+                columns_to_transform = ['CarbonEmissions', 'WaterUsage', 'EnergyConsumption', 'ESG_Environmental']
+                cols_to_apply = [c for c in columns_to_transform if c in esg_tech_log.columns and
+                                 esg_tech_log[c].dtype.kind in 'bifc']
 
-                columns_to_transform = ['CarbonEmissions', 'WaterUsage', 'EnergyConsumption']
-                for col in columns_to_transform:
-                    if col in esg_tech.columns and esg_tech[col].dtype.kind in 'bifc':
-                        orig_skew = esg_tech[col].skew()
-                        esg_tech[col] = np.log1p(esg_tech[col])
-                        new_skew = esg_tech[col].skew()
-                        # revert if log made skew worse
-                        if abs(new_skew) >= abs(orig_skew):
-                            esg_tech[col] = esg_data[esg_data['Industry'] == 'Technology'][col]
+                for col in cols_to_apply:
+                    if (esg_tech_log[col] < 0).any():
+                        shift = abs(esg_tech_log[col].min()) + 1e-6
+                        esg_tech_log[col] = np.log1p(esg_tech_log[col] + shift)
+                    else:
+                        esg_tech_log[col] = np.log1p(esg_tech_log[col])
 
-                esg_tech_numeric = esg_tech.select_dtypes(include=[np.number])
+                numeric_cols_log = esg_tech_log.select_dtypes(include=[np.number]).columns.tolist()
+                if 'Year' in numeric_cols_log:
+                    numeric_cols_log.remove('Year')
 
-                if esg_tech_numeric.shape[1] >= 2:
-                    g2 = sns.pairplot(esg_tech_numeric, diag_kind='kde')
-                    g2.fig.suptitle("Pair plot (Technology - post log-scaling)", fontsize=16, y=1.02)
+                if len(numeric_cols_log) >= 2:
+                    g2 = sns.pairplot(esg_tech_log[numeric_cols_log], diag_kind='kde', corner=True)
+                    g2.fig.suptitle("Pairplot after log-scaling", fontsize=18, fontweight='bold', y=1.02)
                     st.pyplot(g2.fig)
                     plt.close(g2.fig)
-                else:
-                    st.write("Not enough numeric columns in Technology subset:", list(esg_tech_numeric.columns))
 
 with tab3:
     st.write("Plot 1")
