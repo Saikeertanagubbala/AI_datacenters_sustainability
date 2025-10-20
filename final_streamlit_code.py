@@ -337,7 +337,9 @@ with tab2:
                     plt.close(g2.fig)
 
 with tab3:
-    st.write("Plot 1")
+    st.write("Sustainability Features over Time.")
+    st.write("Rather than which region is performing the most environmental damage, we see the trend is that over time all regions are increasing in their carbon emissions, water usage and energy consumption.")
+    st.write("This is alarming as data centers continue to grow in number and size, and more needs to be done to curb their environmental impact.")
     df = pd.read_csv('merged_datacenters_esg_timeseries.csv')
     plot1_data = df.groupby(['region', 'Year']).agg({
         'CarbonEmissions': 'mean',
@@ -346,15 +348,24 @@ with tab3:
         'ESG_Environmental': 'mean'
     }).reset_index()
 
+    metric_map = {
+        "Carbon Emissions": "CarbonEmissions",
+        "Water Usage": "WaterUsage",
+        "Energy Consumption": "EnergyConsumption"
+    }
+
+    metric_label = st.selectbox("Select metric to plot", list(metric_map.keys()), index=0)
+    y_col = metric_map[metric_label]
+
     fig1 = px.line(
         plot1_data,
         x='Year',
-        y='CarbonEmissions',
+        y=y_col,
         color='region',
         markers=True,
-        title='Carbon Emissions Over Time by Region (2015-2025)',
+        title=f'{metric_label} Over Time by Region (2015-2025)',
         labels={
-            'CarbonEmissions': 'Carbon Emissions (log-transformed)',
+            y_col: metric_label,
             'Year': 'Year',
             'region': 'Region'
         },
@@ -363,13 +374,11 @@ with tab3:
 
     fig1.update_layout(
         height=500,
-        hovermode='x unified',
         legend=dict(title='Region', orientation='v')
     )
-
     st.plotly_chart(fig1, use_container_width=True)
-
-    st.write("Plot 2")
+    #------------------------------------------------------------#
+    st.write("Here we see North America and Asia Pacific have the highest power capacity in MW and carbon emissions in 2025, especially the US and China.")
     plot2_data = df[df['Year'] == 2025]
 
     fig2 = px.scatter(plot2_data,
